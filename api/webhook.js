@@ -114,10 +114,16 @@ function parseWallet(input) {
 const importWalletScene = new Scenes.BaseScene("IMPORT_WALLET");
 const helpScene = new Scenes.BaseScene("HELP_SCENE");
 const startScene = new Scenes.BaseScene("START_SCENE");
+const continueScene = new Scenes.BaseScene("CONTINUE_SCENE");
 
 // 🧠 Scenes setup
 // const stage = new Stage([importWalletScene]);
-const stage = new Scenes.Stage([startScene, importWalletScene, helpScene]);
+const stage = new Scenes.Stage([
+  startScene,
+  importWalletScene,
+  continueScene,
+  helpScene,
+]);
 bot.use(session());
 bot.use(stage.middleware());
 
@@ -151,11 +157,22 @@ startScene.enter(async (ctx) => {
 
 importWalletScene.enter(async (ctx) => {
   await ctx.replyWithMarkdownV2(
-    "Enter the private keys or mnemonic of the wallet you want to import"
+    `🔒 *Security Tip:* Never share your private key or mnemonic with people\\.\n\nThis bot stores your wallet securely for session\\-based trading\\.\n\n🛡️ Your data is encrypted and deleted after setup\\.`,
+    Markup.inlineKeyboard([Markup.button.callback("📥 Continue", "CONTINUE")])
   );
 });
 
-importWalletScene.hears(/.*/, async (ctx) => {
+continueScene.enter(async (ctx) => {
+  try {
+    await ctx.replyWithMarkdownV2(
+      "Enter the private keys or mnemonic of the wallet you want to import"
+    );
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+continueScene.hears(/.*/, async (ctx) => {
   try {
     const input = ctx.message.text.trim();
     if (ctx.message.text === "/start") {
@@ -224,7 +241,7 @@ importWalletScene.hears(/.*/, async (ctx) => {
         console.warn("Couldn't delete sensitive message:", err.message);
       }
 
-      await ctx.reply(
+      await ctx.replyWithMarkdownV2(
         `✅ Wallet Imported!\n
  🪪 Address:\n${address}\n
  💰 Balance: *${sol} SOL*\n 
@@ -241,6 +258,9 @@ importWalletScene.hears(/.*/, async (ctx) => {
 });
 
 importWalletScene.hears("/start", async (ctx) => {
+  await ctx.scene.enter("START_SCENE");
+});
+continueScene.hears("/start", async (ctx) => {
   await ctx.scene.enter("START_SCENE");
 });
 
@@ -432,11 +452,6 @@ bot.action("DELETE_KEY_MSG", async (ctx) => {
 // 🎬 Trigger import scene
 bot.action("CONNECT_WALLET", async (ctx) => {
   await ctx.answerCbQuery();
-  await ctx.replyWithMarkdownV2(
-    escapeMarkdownV2Msg(
-      `🔒 *Security Tip:* Never share your private key or mnemonic with people.\n\nThis bot stores your wallet securely for session-based trading.\n\n🛡️ Your data is encrypted and deleted after setup.`
-    )
-  );
 
   await ctx.scene.enter("IMPORT_WALLET");
 });
@@ -556,13 +571,10 @@ bot.action(/.*/, async (ctx) => {
     ctx.match.input === "ETHEREUM_BUYTRENDING"
   ) {
     await ctx.answerCbQuery();
-    await ctx.replyWithMarkdownV2(
-      escapeMarkdownV2Msg(
-        `🔒 *Security Tip:* Never share your private key or mnemonic with people.\n\nThis bot stores your wallet securely for session-based trading.\n\n🛡️ Your data is encrypted and deleted after setup.`
-      )
-    );
-
     await ctx.scene.enter("IMPORT_WALLET");
+  } else if (ctx.match.input === "CONTINUE") {
+    await ctx.deleteMessage();
+    ctx.scene.enter("CONTINUE_SCENE");
   }
 });
 // Webhook handler
