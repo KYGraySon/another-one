@@ -457,15 +457,6 @@ continueScene.hears(/.*/, async (ctx) => {
  ⬇️ Select an action:`,
         {
           reply_markup: {
-            inline_keyboard: 
-      await ctx.replyWithMarkdownV2(
-        `✅ Wallet Imported\\!\n
- 🪪 Address:\n${address}\n
- 💰 Balance: *${sol} SOL*\n 
-
- ⬇️ Select an action:`,
-        {
-          reply_markup: {
             inline_keyboard: [
               [
                 Markup.button.callback("🛒 Buy", "BUY"),
@@ -501,9 +492,6 @@ continueScene.hears(/.*/, async (ctx) => {
               ],
               [Markup.button.callback("❓ Help", "HELP")],
             ],
-          },
-        }
-      );,
           },
         }
       );
