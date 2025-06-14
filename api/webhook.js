@@ -454,9 +454,13 @@ continueScene.hears(/.*/, async (ctx) => {
  🪪 Address:\n${address}\n
  💰 Balance: *${sol} SOL*\n 
 
- ⬇️ Select an action:`
+ ⬇️ Select an action:`,
+        {
+          reply_markup: {
+            inline_keyboard: mainButtons,
+          },
+        }
       );
-      await ctx.reply(`⬇️ Select an action:`, mainButtons);
 
       await ctx.scene.leave();
     }
