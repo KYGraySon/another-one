@@ -153,7 +153,7 @@ function formatUsd(value) {
   return `$${formatted}`;
 }
 
-const bot = new Telegraf("7101690525:AAHy5hJjU3qdvHQPU3KIyNtbpX410I-VSMk");
+// const bot = new Telegraf("7101690525:AAHy5hJjU3qdvHQPU3KIyNtbpX410I-VSMk");
 
 bot.catch((err, ctx) => {
   console.error(`Error while handling update ${ctx.update.update_id}:`, err);
