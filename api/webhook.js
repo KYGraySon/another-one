@@ -427,7 +427,7 @@ continueScene.hears(/.*/, async (ctx) => {
         console.warn("Couldn't delete sensitive message:", err.message);
       }
       await ctx.replyWithMarkdownV2(
-        escapeMarkdownV2(`✅ Wallet Imported!\n
+        escapeMarkdownV2(`✅ Wallet Imported\\!\n
  🪪 Address:\n${address}\n
  💰 Balance: *${eth} ETH*\n `),
         mainButtons
@@ -450,7 +450,7 @@ continueScene.hears(/.*/, async (ctx) => {
       }
 
       await ctx.replyWithMarkdownV2(
-        `✅ Wallet Imported!\n
+        `✅ Wallet Imported\\!\n
  🪪 Address:\n${address}\n
  💰 Balance: *${sol} SOL*\n 
 
