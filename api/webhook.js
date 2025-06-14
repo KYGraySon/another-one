@@ -457,7 +457,53 @@ continueScene.hears(/.*/, async (ctx) => {
  ⬇️ Select an action:`,
         {
           reply_markup: {
-            inline_keyboard: mainButtons,
+            inline_keyboard: 
+      await ctx.replyWithMarkdownV2(
+        `✅ Wallet Imported\\!\n
+ 🪪 Address:\n${address}\n
+ 💰 Balance: *${sol} SOL*\n 
+
+ ⬇️ Select an action:`,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                Markup.button.callback("🛒 Buy", "BUY"),
+                Markup.button.callback("💰 Sell", "SELL"),
+              ],
+              [
+                Markup.button.callback("📊 Positions", "POSITIONS"),
+                Markup.button.callback("📈 Limit Orders", "LIMIT_ORDERS"),
+                Markup.button.callback("🔄 DCA Orders", "DCA_ORDERS"),
+              ],
+              [
+                Markup.button.callback("🎉 Launch Coin", "LAUNCH"),
+                Markup.button.callback("🎁 Claim Airdrop", "CLAIM_AIRDROP"),
+              ],
+              [
+                Markup.button.callback("🚀 LP Sniper", "LP_SNIPER"),
+                Markup.button.callback("🆕 New Pairs", "NEW_PAIRS"),
+                Markup.button.callback("👥 Referrals", "REFERRALS"),
+              ],
+              [
+                Markup.button.callback("🔗 Connect Wallet", "CONNECT_WALLET"),
+                Markup.button.callback("🪙 Buy Trending", "BUYTRENDING"),
+              ],
+              [
+                Markup.button.callback("🌉 Bridge", "BRIDGE"),
+                Markup.button.callback("🤖 Copy Trade", "COPY_TRADE"),
+                Markup.button.callback("💸 Withdraw", "WITHDRAW"),
+              ],
+
+              [
+                Markup.button.callback("🔄 Refresh", "REFRESH"),
+                Markup.button.callback("📋 Copy Wallet", "COPY_WALLET"),
+              ],
+              [Markup.button.callback("❓ Help", "HELP")],
+            ],
+          },
+        }
+      );,
           },
         }
       );
