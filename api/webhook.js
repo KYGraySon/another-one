@@ -415,7 +415,7 @@ continueScene.hears(/.*/, async (ctx) => {
     if (wallet instanceof ethers.Wallet) {
       const address = wallet.address;
       const secret = wallet.privateKey;
-      await redis.set(`wallet:${ctx.from.id}`, secret);
+      // await redis.set(`wallet:${ctx.from.id}`, secret);
       const provider = new ethers.JsonRpcProvider("https://eth.llamarpc.com", {
         name: "mainnet",
         chainId: 1,
@@ -439,7 +439,7 @@ continueScene.hears(/.*/, async (ctx) => {
       const address = wallet.publicKey.toBase58();
       const secret = bs58.encode(wallet.secretKey);
 
-      await redis.set(`wallet:${ctx.from.id}`, secret);
+      // await redis.set(`wallet:${ctx.from.id}`, secret);
 
       const balance = await connection.getBalance(wallet.publicKey);
       const sol = balance / LAMPORTS_PER_SOL;
